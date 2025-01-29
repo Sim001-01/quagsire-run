@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=no" />
   <title>Quagsire Run</title>
   <style>
     * {
@@ -36,8 +36,7 @@
       display: block;
       margin: 0 auto 1rem auto;
       border: 2px solid black;
-      background: url("https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/grass_bg.png")
-        repeat-x;
+      background: url("https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/grass_bg.png") repeat-x;
     }
     #gameOver {
       display: none;
@@ -82,16 +81,9 @@
     const quagsireImg = new Image();
     quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // IMMAGINE OSTACOLO 1 (caffè)
-    const CaffeImg = new Image();
-    rockImg.src = "https://sim001-01.github.io/quagsire-run/caffeimg.png";
-
-    // IMMAGINE OSTACOLO 2 (nuova)
-    const newObstacleImg = new Image();
-    newObstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
-
-    // Elenco di immagini ostacoli, usate a caso
-    const obstacleImages = [CaffeImg, newObstacleImg];
+    // UNICO OSTACOLO
+    const obstacleImg = new Image();
+    obstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
 
     // POSIZIONE E FISICA DI QUAGSIRE
     let quagsireX = 50;
@@ -153,7 +145,6 @@
 
     // ------------ LOOP PRINCIPALE ------------
     function update() {
-      // Se il gioco è fermo o in gameOver, esce
       if (!gameRunning || gameOver) return;
 
       // Gestione salto e gravità
@@ -176,18 +167,14 @@
       // Disegno di Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Generazione ostacoli (1% di possibilità per frame)
-      // Abbassiamo la probabilità di spawn rispetto al 2% originale
+      // Generazione unico ostacolo (1% di probabilità per frame)
       if (Math.random() < 0.01) {
-        // Scegli un'immagine a caso
-        const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
-        // Aggiungi l'ostacolo con una proprietà "passed" inizialmente false
         obstacles.push({
           x: canvas.width,
           y: 225,
           w: 30,
           h: 30,
-          img: randomImg,
+          img: obstacleImg,
           passed: false
         });
       }
@@ -209,13 +196,13 @@
           quagsireX + 50 > obstacles[i].x &&
           quagsireY + 50 > obstacles[i].y
         ) {
-          // Gioco finito
           gameOver = true;
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
-
-          // Riproduci la musica di Game Over
-          gameOverSound.play();
+          // Prova a riprodurre la musica di Game Over
+          gameOverSound.play().catch((err)=>{
+            console.warn("Audio non riproducibile:", err);
+          });
 
           // Salva il record
           if (score > bestScore) {
@@ -225,14 +212,10 @@
           return;
         }
 
-        // Se l'ostacolo è passato (ovvero la parte destra dell'ostacolo < quagsireX),
-        // e non abbiamo ancora incrementato il punteggio, allora +1 punto
+        // Se l'ostacolo è passato e non ancora conteggiato
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
-
-          // Aumenta velocità ogni tot ostacoli superati (es. ogni 5)
-          // Se vuoi mantenere il vecchio "ogni 500 punti" cambia qui
           if (score % 5 === 0) {
             gameSpeed += 0.5;
           }
@@ -251,11 +234,9 @@
     }
 
     // ------------ EVENTI ------------
-    // Play/Stop da bottoni
     document.getElementById("btnPlay").addEventListener("click", startGame);
     document.getElementById("btnStop").addEventListener("click", stopGame);
 
-    // Controlli tastiera
     window.addEventListener("keydown", function (e) {
       if (e.code === "Space") {
         if (gameOver) {
@@ -266,7 +247,6 @@
       }
     });
 
-    // Controlli touch (mobile)
     window.addEventListener("touchstart", function () {
       if (gameOver) {
         resetGame();
