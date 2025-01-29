@@ -25,6 +25,15 @@
             color: red;
             margin-top: 20px;
         }
+        #controls {
+            margin-top: 10px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -32,6 +41,10 @@
     <canvas id="gameCanvas" width="800" height="300"></canvas>
     <p id="score">Punteggio: 0</p>
     <p id="gameOver">Game Over! Tocca lo schermo o premi SPAZIO per riprovare.</p>
+    <div id="controls">
+        <button onclick="startGame()">Play</button>
+        <button onclick="stopGame()">Stop</button>
+    </div>
 
     <script>
         let canvas = document.getElementById("gameCanvas");
@@ -49,8 +62,9 @@
         let isJumping = false;
         let obstacles = [];
         let gameSpeed = 3;
-        let score = 0;
+        let score = localStorage.getItem("quagsireScore") || 0;
         let gameOver = false;
+        let gameRunning = false;
 
         function jump() {
             if (!isJumping) {
@@ -63,15 +77,16 @@
             gameOver = false;
             document.getElementById("gameOver").style.display = "none";
             score = 0;
+            localStorage.setItem("quagsireScore", score);
             gameSpeed = 3;
             obstacles = [];
             quagsireY = 200;
             isJumping = false;
-            requestAnimationFrame(update);
+            startGame();
         }
 
         function update() {
-            if (gameOver) return;
+            if (!gameRunning || gameOver) return;
 
             velocityY += gravity;
             quagsireY += velocityY;
@@ -100,15 +115,28 @@
                 ) {
                     gameOver = true;
                     document.getElementById("gameOver").style.display = "block";
+                    gameRunning = false;
                     return;
                 }
             }
 
             obstacles = obstacles.filter(obstacle => obstacle.x > -30);
             score++;
+            localStorage.setItem("quagsireScore", score);
             if (score % 500 === 0) gameSpeed += 0.5;
             document.getElementById("score").innerText = "Punteggio: " + score;
             requestAnimationFrame(update);
+        }
+
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                update();
+            }
+        }
+
+        function stopGame() {
+            gameRunning = false;
         }
 
         window.addEventListener("keydown", function(event) {
@@ -129,7 +157,7 @@
             }
         });
 
-        update();
+        document.getElementById("score").innerText = "Punteggio: " + score;
     </script>
 </body>
 </html>
