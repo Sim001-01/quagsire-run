@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=no" />
   <title>Quagsire Run</title>
-  <!-- Favicon aggiornato -->
+  <!-- Favicon -->
   <link
     rel="icon"
     type="image/png"
@@ -77,7 +77,7 @@
     let gameRunning = false;
     let gameOver = false;
 
-    // Riferimento all'audio
+    // Audio Game Over
     const gameOverSound = document.getElementById("gameOverSound");
 
     // Adattamento per mobile
@@ -98,6 +98,7 @@
     let velocityY = 0;
     const gravity = 0.5;
     let isJumping = false;
+    let jumpHeld = false; // Per gestire il salto prolungato
 
     // OSTACOLI
     let obstacles = [];
@@ -109,9 +110,9 @@
 
     // Variabili di controllo per gli ostacoli
     let consecutiveSpawns = 0;
-    let skipSpawn = 0; // frame di attesa prima del prossimo spawn
+    let skipSpawn = 0;
 
-    // CARICHIAMO IL RECORD SALVATO (SE ESISTE) DA localStorage
+    // CARICHIAMO IL RECORD SALVATO (SE ESISTE)
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
     }
@@ -142,47 +143,64 @@
       quagsireY = 200;
       velocityY = 0;
       isJumping = false;
-      document.getElementById("gameOver").style.display = "none";
+      jumpHeld = false;
       consecutiveSpawns = 0;
       skipSpawn = 0;
+      document.getElementById("gameOver").style.display = "none";
       gameRunning = true;
       requestAnimationFrame(update);
     }
 
-    function jump() {
+    // Richiamata quando premiamo Space o tocchiamo lo schermo
+    function startJump() {
       if (!isJumping) {
-        // Aumentiamo di poco il salto, da -10 a -12
+        // Inizio di un nuovo salto
         velocityY = -12;
         isJumping = true;
       }
+      jumpHeld = true;
+    }
+
+    // Richiamata quando rilasciamo Space o togliamo il dito dallo schermo
+    function endJump() {
+      jumpHeld = false;
     }
 
     // ------------ LOOP PRINCIPALE ------------
     function update() {
       if (!gameRunning || gameOver) return;
 
+      // Se stiamo ancora tenendo premuto, continuiamo ad alzare un po' Quagsire (fino a un limite)
+      if (jumpHeld && isJumping && velocityY < -2) {
+        velocityY -= 0.2;
+        // Limite massimo di "spinta" verso l'alto
+        if (velocityY < -15) {
+          velocityY = -15;
+        }
+      }
+
       // Gestione salto e gravità
       velocityY += gravity;
       quagsireY += velocityY;
 
+      // Quagsire atterra
       if (quagsireY > 200) {
         quagsireY = 200;
         isJumping = false;
       }
 
-      // Pulizia canvas
+      // Pulisce
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Disegno del terreno
+      // Disegno terreno
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
-      // Disegno di Quagsire
+      // Disegno Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Logica per spawn ostacoli (max 2 di fila, poi salta 60 frame)
+      // Logica spawn ostacoli (max 2 di fila, poi salta 60 frame)
       if (skipSpawn === 0) {
-        // 0.5% di probabilità di spawnare
         if (Math.random() < 0.005) {
           obstacles.push({
             x: canvas.width,
@@ -194,13 +212,11 @@
           });
           consecutiveSpawns++;
 
-          // Se siamo arrivati a 2 consecutivi, saltiamo 60 frame
           if (consecutiveSpawns >= 2) {
             skipSpawn = 60;
             consecutiveSpawns = 0;
           }
         } else {
-          // Nessun ostacolo spawnato in questo frame
           consecutiveSpawns = 0;
         }
       } else {
@@ -232,7 +248,7 @@
           return;
         }
 
-        // Aumento punteggio se superato
+        // Superato l'ostacolo -> +1 punto
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
@@ -242,10 +258,10 @@
       // Rimuove ostacoli usciti dallo schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Aumentiamo la velocità a step di 1 ogni 10 punti
+      // Velocità cresce a step di 1 ogni 10 punti
       gameSpeed = 3 + Math.floor(score / 10);
 
-      // Aggiorna punteggio e record a schermo
+      // Aggiorna punteggio
       document.getElementById("score").innerText = "Punteggio: " + score;
       document.getElementById("bestScore").innerText = "Record: " + bestScore;
 
@@ -253,27 +269,43 @@
     }
 
     // ------------ EVENTI ------------
+    // Tasti
     document.getElementById("btnPlay").addEventListener("click", startGame);
     document.getElementById("btnStop").addEventListener("click", stopGame);
 
+    // Se premi Space -> startJump
     window.addEventListener("keydown", function (e) {
       if (e.code === "Space") {
         if (gameOver) {
           resetGame();
         } else {
-          jump();
+          startJump();
         }
       }
     });
 
+    // Se rilasci Space -> endJump
+    window.addEventListener("keyup", function (e) {
+      if (e.code === "Space") {
+        endJump();
+      }
+    });
+
+    // Touch
     window.addEventListener("touchstart", function () {
       if (gameOver) {
         resetGame();
       } else {
-        jump();
+        startJump();
       }
     });
 
+    // Fine touch
+    window.addEventListener("touchend", function () {
+      endJump();
+    });
+
+    // Mostra punteggio iniziale
     document.getElementById("score").innerText = "Punteggio: " + score;
     document.getElementById("bestScore").innerText = "Record: " + bestScore;
   </script>
