@@ -101,7 +101,6 @@
     let bestScore = 0;
 
     // Variabili di controllo per gli ostacoli
-    // Per evitare che appaiano troppo vicini, aumentiamo skipSpawn dopo 2 consecutivi
     let consecutiveSpawns = 0;
     let skipSpawn = 0; // frame di attesa prima del prossimo spawn
 
@@ -173,10 +172,10 @@
       // Disegno di Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Logica per spawn ostacoli (max 2 di fila, poi salta 20 frame)
+      // Logica per spawn ostacoli (max 2 di fila, poi salta 40 frame)
       if (skipSpawn === 0) {
-        // 1% di probabilità di spawnare
-        if (Math.random() < 0.01) {
+        // 0.5% di probabilità di spawnare
+        if (Math.random() < 0.005) {
           obstacles.push({
             x: canvas.width,
             y: 225,
@@ -187,9 +186,9 @@
           });
           consecutiveSpawns++;
 
-          // Se siamo arrivati a 2 consecutivi, saltiamo 20 frame
+          // Se siamo arrivati a 2 consecutivi, saltiamo 40 frame
           if (consecutiveSpawns >= 2) {
-            skipSpawn = 20; // Numero di frame in cui NON spawniamo
+            skipSpawn = 40;
             consecutiveSpawns = 0;
           }
         } else {
