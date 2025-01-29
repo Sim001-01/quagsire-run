@@ -100,6 +100,10 @@
     let score = 0;
     let bestScore = 0;
 
+    // Variabili di controllo per gli ostacoli
+    let consecutiveSpawns = 0; // quante volte abbiamo spawnato di fila
+    let skipSpawn = 0; // quante frame saltare dopo 2 ostacoli consecutivi
+
     // CARICHIAMO IL RECORD SALVATO (SE ESISTE) DA localStorage
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
@@ -132,6 +136,8 @@
       velocityY = 0;
       isJumping = false;
       document.getElementById("gameOver").style.display = "none";
+      consecutiveSpawns = 0;
+      skipSpawn = 0;
       gameRunning = true;
       requestAnimationFrame(update);
     }
@@ -151,13 +157,11 @@
       velocityY += gravity;
       quagsireY += velocityY;
 
-      // Evita che Quagsire sprofondi sotto il terreno
       if (quagsireY > 200) {
         quagsireY = 200;
         isJumping = false;
       }
 
-      // Pulisce il canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Disegno del terreno
@@ -167,16 +171,31 @@
       // Disegno di Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Generazione unico ostacolo (1% di probabilità per frame)
-      if (Math.random() < 0.01) {
-        obstacles.push({
-          x: canvas.width,
-          y: 225,
-          w: 30,
-          h: 30,
-          img: obstacleImg,
-          passed: false
-        });
+      // Logica per spawn ostacoli: al massimo 2 consecutivi, poi salta almeno 1 frame
+      if (skipSpawn === 0) {
+        // 1% di probabilità di spawnare
+        if (Math.random() < 0.01) {
+          obstacles.push({
+            x: canvas.width,
+            y: 225,
+            w: 30,
+            h: 30,
+            img: obstacleImg,
+            passed: false
+          });
+          consecutiveSpawns++;
+          if (consecutiveSpawns >= 2) {
+            // Se già 2 consecutivi, saltiamo 1 frame di spawn
+            skipSpawn = 1;
+            consecutiveSpawns = 0;
+          }
+        } else {
+          // Nessun ostacolo spawnato in questo frame
+          consecutiveSpawns = 0;
+        }
+      } else {
+        // Skip lo spawn per questa frame
+        skipSpawn--;
       }
 
       // Muove e disegna ostacoli
@@ -190,7 +209,7 @@
           obstacles[i].h
         );
 
-        // Collisione con Quagsire
+        // Controllo collisione
         if (
           quagsireX < obstacles[i].x + obstacles[i].w &&
           quagsireX + 50 > obstacles[i].x &&
@@ -199,12 +218,10 @@
           gameOver = true;
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
-          // Prova a riprodurre la musica di Game Over
-          gameOverSound.play().catch((err)=>{
+          gameOverSound.play().catch((err) => {
             console.warn("Audio non riproducibile:", err);
           });
 
-          // Salva il record
           if (score > bestScore) {
             bestScore = score;
             localStorage.setItem("bestQuagsireScore", bestScore);
@@ -216,20 +233,20 @@
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
-          if (score % 5 === 0) {
-            gameSpeed += 0.5;
-          }
         }
       }
 
-      // Rimuove gli ostacoli usciti dallo schermo
+      // Rimuove ostacoli usciti dallo schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Aggiorna punteggio e record a schermo
+      // Aumentiamo la velocità a step ogni 10 punti
+      // Esempio: a 10 punti -> speed 4, a 20 -> speed 5, ecc.
+      gameSpeed = 3 + Math.floor(score / 10);
+
+      // Aggiorna punteggio e record
       document.getElementById("score").innerText = "Punteggio: " + score;
       document.getElementById("bestScore").innerText = "Record: " + bestScore;
 
-      // Richiama il prossimo frame
       requestAnimationFrame(update);
     }
 
@@ -255,7 +272,6 @@
       }
     });
 
-    // Mostra punteggio iniziale
     document.getElementById("score").innerText = "Punteggio: " + score;
     document.getElementById("bestScore").innerText = "Record: " + bestScore;
   </script>
