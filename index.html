@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=no" />
   <title>Quagsire Run</title>
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="https://img.pokemondb.net/sprites/scarlet-violet/normal/quagsire.png"
+  />
   <style>
     * {
       box-sizing: border-box;
@@ -172,7 +178,7 @@
       // Disegno di Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Logica per spawn ostacoli (max 2 di fila, poi salta 40 frame)
+      // Logica per spawn ostacoli (max 2 di fila, poi salta 60 frame)
       if (skipSpawn === 0) {
         // 0.5% di probabilità di spawnare
         if (Math.random() < 0.005) {
@@ -186,9 +192,9 @@
           });
           consecutiveSpawns++;
 
-          // Se siamo arrivati a 2 consecutivi, saltiamo 40 frame
+          // Se siamo arrivati a 2 consecutivi, saltiamo 60 frame
           if (consecutiveSpawns >= 2) {
-            skipSpawn = 40;
+            skipSpawn = 60;
             consecutiveSpawns = 0;
           }
         } else {
