@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Quagsire Run</title>
+    <style>
+        body {
+            text-align: center;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            border: 2px solid black;
+        }
+        #gameOver {
+            display: none;
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Quagsire Run</h1>
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    <p id="score">Punteggio: 0</p>
+    <p id="gameOver">Game Over! Tocca lo schermo o premi SPAZIO per riprovare.</p>
+
+    <script>
+        let canvas = document.getElementById("gameCanvas");
+        let ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
+        canvas.height = 300;
+
+        let quagsire = new Image();
+        quagsire.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
+        let rock = new Image();
+        rock.src = "https://upload.wikimedia.org/wikipedia/commons/3/3a/Rock.png";
+
+        let quagsireX = 50, quagsireY = 200, velocityY = 0, gravity = 0.5;
+        let isJumping = false;
+        let obstacles = [];
+        let gameSpeed = 3;
+        let score = 0;
+        let gameOver = false;
+
+        function jump() {
+            if (!isJumping) {
+                velocityY = -10;
+                isJumping = true;
+            }
+        }
+
+        function resetGame() {
+            gameOver = false;
+            document.getElementById("gameOver").style.display = "none";
+            score = 0;
+            gameSpeed = 3;
+            obstacles = [];
+            quagsireY = 200;
+            isJumping = false;
+            requestAnimationFrame(update);
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            velocityY += gravity;
+            quagsireY += velocityY;
+
+            if (quagsireY >= 200) {
+                quagsireY = 200;
+                isJumping = false;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#4CAF50";
+            ctx.fillRect(0, 250, canvas.width, 50);
+            ctx.drawImage(quagsire, quagsireX, quagsireY, 50, 50);
+
+            if (Math.random() < 0.02) {
+                obstacles.push({ x: canvas.width, y: 225, width: 30, height: 30 });
+            }
+
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= gameSpeed;
+                ctx.drawImage(rock, obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+                if (
+                    quagsireX < obstacles[i].x + obstacles[i].width &&
+                    quagsireX + 50 > obstacles[i].x &&
+                    quagsireY + 50 > obstacles[i].y
+                ) {
+                    gameOver = true;
+                    document.getElementById("gameOver").style.display = "block";
+                    return;
+                }
+            }
+
+            obstacles = obstacles.filter(obstacle => obstacle.x > -30);
+            score++;
+            if (score % 500 === 0) gameSpeed += 0.5;
+            document.getElementById("score").innerText = "Punteggio: " + score;
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                if (gameOver) {
+                    resetGame();
+                } else {
+                    jump();
+                }
+            }
+        });
+
+        window.addEventListener("touchstart", function() {
+            if (gameOver) {
+                resetGame();
+            } else {
+                jump();
+            }
+        });
+
+        update();
+    </script>
+</body>
+</html>
