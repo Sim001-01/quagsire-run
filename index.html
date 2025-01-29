@@ -59,12 +59,13 @@
   </div>
   <canvas id="gameCanvas" width="800" height="300"></canvas>
   <p id="gameOver">Game Over! Tocca o premi SPAZIO per riprovare.</p>
-
+  <audio id="gameOverSound" src="https://sim001-01.github.io/quagsire-run/Pokemon%20Cries%20-%20%23195%20Quagsire.mp3"></audio>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     let gameRunning = false;
     let gameOver = false;
+    const gameOverSound = document.getElementById("gameOverSound");
 
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
@@ -153,6 +154,11 @@
           gameOver = true;
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
+          gameOverSound.play();
+          if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem("bestQuagsireScore", bestScore);
+          }
         }
       }
 
@@ -161,17 +167,6 @@
       document.getElementById("bestScore").innerText = "Record: " + bestScore;
       requestAnimationFrame(update);
     }
-
-    document.getElementById("btnPlay").addEventListener("click", startGame);
-    document.getElementById("btnStop").addEventListener("click", stopGame);
-
-    window.addEventListener("keydown", function (e) {
-      if (e.code === "Space") gameOver ? resetGame() : jump();
-    });
-
-    window.addEventListener("touchstart", function () {
-      gameOver ? resetGame() : jump();
-    });
   </script>
 </body>
 </html>
