@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=no" />
   <title>Quagsire Run</title>
+  <!-- Favicon aggiornato -->
   <link
     rel="icon"
     type="image/png"
     sizes="32x32"
-    href="https://img.pokemondb.net/sprites/scarlet-violet/normal/quagsire.png"
+    href="https://sim001-01.github.io/quagsire-run/quagsireimg.png"
   />
   <style>
     * {
@@ -150,7 +151,8 @@
 
     function jump() {
       if (!isJumping) {
-        velocityY = -10;
+        // Aumentiamo di poco il salto, da -10 a -12
+        velocityY = -12;
         isJumping = true;
       }
     }
