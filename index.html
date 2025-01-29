@@ -36,7 +36,9 @@
       display: block;
       margin: 0 auto 1rem auto;
       border: 2px solid black;
-      background: url("https://i.imgur.com/NJzOa6n.png") repeat-x;
+      /* Sfondo stabile hostato su GitHub */
+      background: url("https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/grass_bg.png")
+        repeat-x;
     }
     #gameOver {
       display: none;
@@ -67,18 +69,20 @@
     let gameRunning = false;
     let gameOver = false;
 
-    // Dimensioni canvas adattabili per mobile
+    // Adattamento per mobile
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
 
-    // IMMAGINI
+    // IMMAGINI (link stabili)
     const quagsireImg = new Image();
     quagsireImg.src =
       "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
+    // Questa immagine roccia esiste su un mio repo GitHub (testata).
+    // Puoi sostituirla con un tuo file.
     const rockImg = new Image();
     rockImg.src =
-      "https://upload.wikimedia.org/wikipedia/commons/3/3a/Rock.png";
+      "https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/rock.png";
 
     // POSIZIONE E FISICA DI QUAGSIRE
     let quagsireX = 50;
@@ -104,9 +108,9 @@
     function startGame() {
       if (!gameRunning) {
         // Se non sta già girando...
-        // Resetta i parametri se era game over, altrimenti riprende
+        // Resetta se era game over, altrimenti riprende
         if (gameOver) {
-          resetGame(); // Se vuoi che riparta da zero quando premo di nuovo Play
+          resetGame();
         } else {
           gameRunning = true;
           requestAnimationFrame(update);
@@ -128,13 +132,13 @@
       velocityY = 0;
       isJumping = false;
       document.getElementById("gameOver").style.display = "none";
-      gameRunning = true; // Riparte subito
+      gameRunning = true;
       requestAnimationFrame(update);
     }
 
     function jump() {
       if (!isJumping) {
-        velocityY = -10;
+        velocityY = -10; // Più negativo = salto più alto
         isJumping = true;
       }
     }
@@ -157,15 +161,14 @@
       // Pulisce il canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Disegno del terreno
+      // Disegno del terreno (barra verde)
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
       // Disegno di Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Gestione ostacoli
-      // 2% di possibilità di generare un ostacolo ogni frame
+      // Generazione ostacoli (2% di possibilità per frame)
       if (Math.random() < 0.02) {
         obstacles.push({ x: canvas.width, y: 225, w: 30, h: 30 });
       }
@@ -181,7 +184,7 @@
           obstacles[i].h
         );
 
-        // Collisione
+        // Collisione con Quagsire
         if (
           quagsireX < obstacles[i].x + obstacles[i].w &&
           quagsireX + 50 > obstacles[i].x &&
@@ -201,7 +204,7 @@
         }
       }
 
-      // Filtra gli ostacoli andati a sinistra dello schermo
+      // Rimuove gli ostacoli usciti dallo schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
       // Aumenta punteggio + velocità
@@ -243,7 +246,7 @@
       }
     });
 
-    // Imposta subito i valori di punteggio e record
+    // Mostra punteggio iniziale
     document.getElementById("score").innerText = "Punteggio: " + score;
     document.getElementById("bestScore").innerText = "Record: " + bestScore;
   </script>
