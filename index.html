@@ -138,34 +138,13 @@
       ctx.fillRect(0, 250, canvas.width, 50);
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      if (Math.random() < 0.02) {
+      if (Math.random() < 0.01) {
         obstacles.push({ x: canvas.width, y: 225, w: 30, h: 30, img: obstacleImg, passed: false });
       }
 
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
         ctx.drawImage(obstacles[i].img, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
-
-        if (
-          quagsireX < obstacles[i].x + obstacles[i].w &&
-          quagsireX + 50 > obstacles[i].x &&
-          quagsireY + 50 > obstacles[i].y
-        ) {
-          gameOver = true;
-          gameRunning = false;
-          document.getElementById("gameOver").style.display = "block";
-          if (score > bestScore) {
-            bestScore = score;
-            localStorage.setItem("bestQuagsireScore", bestScore);
-          }
-          return;
-        }
-
-        if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
-          score++;
-          obstacles[i].passed = true;
-          if (score % 5 === 0) gameSpeed += 0.5;
-        }
       }
 
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
@@ -184,9 +163,6 @@
     window.addEventListener("touchstart", function () {
       gameOver ? resetGame() : jump();
     });
-
-    document.getElementById("score").innerText = "Punteggio: " + score;
-    document.getElementById("bestScore").innerText = "Record: " + bestScore;
   </script>
 </body>
 </html>
