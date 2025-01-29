@@ -36,7 +36,6 @@
       display: block;
       margin: 0 auto 1rem auto;
       border: 2px solid black;
-      /* Sfondo stabile hostato su GitHub */
       background: url("https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/grass_bg.png")
         repeat-x;
     }
@@ -73,16 +72,20 @@
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
 
-    // IMMAGINI (link stabili)
+    // IMMAGINE DI QUAGSIRE
     const quagsireImg = new Image();
-    quagsireImg.src =
-      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
+    quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // Questa immagine roccia esiste su un mio repo GitHub (testata).
-    // Puoi sostituirla con un tuo file.
+    // IMMAGINE OSTACOLO 1 (roccia)
     const rockImg = new Image();
-    rockImg.src =
-      "https://www.mediafire.com/view/zrp8mvocmm2xn7u/Progetto_senza_titolo.png/file";
+    rockImg.src = "https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/rock.png";
+
+    // IMMAGINE OSTACOLO 2 (nuova)
+    const newObstacleImg = new Image();
+    newObstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
+
+    // Elenco di immagini ostacoli, usate a caso
+    const obstacleImages = [rockImg, newObstacleImg];
 
     // POSIZIONE E FISICA DI QUAGSIRE
     let quagsireX = 50;
@@ -97,7 +100,7 @@
     // PARAMETRI DI GIOCO
     let gameSpeed = 3;
     let score = 0;
-    let bestScore = 0; // Record memorizzato
+    let bestScore = 0;
 
     // CARICHIAMO IL RECORD SALVATO (SE ESISTE) DA localStorage
     if (localStorage.getItem("bestQuagsireScore")) {
@@ -105,6 +108,7 @@
     }
 
     // ------------ FUNZIONI DI GIOCO ------------
+
     function startGame() {
       if (!gameRunning) {
         // Se non sta già girando...
@@ -161,7 +165,7 @@
       // Pulisce il canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Disegno del terreno (barra verde)
+      // Disegno del terreno
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
@@ -170,14 +174,25 @@
 
       // Generazione ostacoli (2% di possibilità per frame)
       if (Math.random() < 0.02) {
-        obstacles.push({ x: canvas.width, y: 225, w: 30, h: 30 });
+        // Scegli un'immagine a caso
+        const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+        // Aggiungi l'ostacolo con una proprietà "passed" inizialmente false
+        obstacles.push({
+          x: canvas.width,
+          y: 225,
+          w: 30,
+          h: 30,
+          img: randomImg,
+          passed: false
+        });
       }
 
       // Muove e disegna ostacoli
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
+
         ctx.drawImage(
-          rockImg,
+          obstacles[i].img,
           obstacles[i].x,
           obstacles[i].y,
           obstacles[i].w,
@@ -195,23 +210,30 @@
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
 
-          // Salva il record in localStorage
+          // Salva il record
           if (score > bestScore) {
             bestScore = score;
             localStorage.setItem("bestQuagsireScore", bestScore);
           }
           return;
         }
+
+        // Se l'ostacolo è passato (ovvero la parte destra dell'ostacolo < quagsireX),
+        // e non abbiamo ancora incrementato il punteggio, allora +1 punto
+        if (!obstacles[i].passed && (obstacles[i].x + obstacles[i].w < quagsireX)) {
+          score++;
+          obstacles[i].passed = true;
+
+          // Aumenta velocità ogni tot ostacoli superati (es. ogni 5)
+          // Se vuoi mantenere il vecchio "ogni 500 punti" cambia qui
+          if (score % 5 === 0) {
+            gameSpeed += 0.5;
+          }
+        }
       }
 
       // Rimuove gli ostacoli usciti dallo schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
-
-      // Aumenta punteggio + velocità
-      score++;
-      if (score % 500 === 0) {
-        gameSpeed += 0.5;
-      }
 
       // Aggiorna punteggio e record a schermo
       document.getElementById("score").innerText = "Punteggio: " + score;
