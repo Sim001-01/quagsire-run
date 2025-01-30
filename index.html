@@ -85,6 +85,39 @@
       background-color: rgba(0, 0, 0, 0.5);
       z-index: 998;
     }
+
+    /* Stili per selettore personaggio */
+    #characterSelect {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 3px solid #333;
+      border-radius: 8px;
+      padding: 1rem;
+      width: 300px;
+      text-align: center;
+      z-index: 999;
+    }
+    #characterSelect h2 {
+      margin-bottom: 1rem;
+    }
+    #characterSelect .char-wrapper {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    #characterSelect img {
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+    }
+    #characterSelect button {
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -98,6 +131,7 @@
     <button id="btnPlay">Play</button>
     <button id="btnStop">Stop</button>
     <button id="btnShop">Negozio</button>
+    <button id="btnCharSelect">Seleziona Personaggio</button>
   </div>
 
   <canvas id="gameCanvas" width="800" height="300"></canvas>
@@ -113,6 +147,24 @@
     <button id="btnBuyAbsol">Compra Absol (10 monete)</button>
     <br />
     <button id="btnCloseShop">Chiudi</button>
+  </div>
+
+  <!-- Finestra selezione personaggio -->
+  <div id="characterSelect">
+    <h2>Seleziona Personaggio</h2>
+    <div class="char-wrapper">
+      <!-- Quagsire -->
+      <div>
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png" id="selectQuagsire" alt="Quagsire" title="Quagsire" />
+        <p>Quagsire</p>
+      </div>
+      <!-- Absol -->
+      <div>
+        <img src="https://sim001-01.github.io/quagsire-run/stat-absol.png" id="selectAbsol" alt="Absol" title="Absol" />
+        <p>Absol</p>
+      </div>
+    </div>
+    <button id="btnCloseCharSelect">Chiudi</button>
   </div>
 
   <!-- Audio di Game Over -->
@@ -139,14 +191,18 @@
     const absolImg = new Image();
     absolImg.src = "https://sim001-01.github.io/quagsire-run/stat-absol.png";
 
-    // Determina quale personaggio usare (di default Quagsire)
+    // PERSONAGGI DISPONIBILI
     let currentCharacter = "quagsire";
-    // Se in localStorage c'è un acquisto, allora sostituisci
-    if (localStorage.getItem("absolPurchased") === "true") {
-      currentCharacter = "absol";
+
+    // Se c'è un acquisto absol e un personaggio selezionato in localStorage, recuperali
+    const absolPurchased = (localStorage.getItem("absolPurchased") === "true");
+    const storedChar = localStorage.getItem("currentCharacter");
+    if (storedChar) {
+      currentCharacter = storedChar; // se esiste, prendi quello
+    } else {
+      // altrimenti, se non c'è storedChar ma absol comprato, potremmo di default restare su quagsire finché l'utente non seleziona
     }
 
-    // Funzione per ottenere l'immagine corrente
     function getCurrentCharacterImg() {
       return currentCharacter === "absol" ? absolImg : quagsireImg;
     }
@@ -178,7 +234,7 @@
     let consecutiveSpawns = 0;
     let skipSpawn = 0;
 
-    // RECUPERO RECORD, MONETE, E ACQUISTO ABSOL
+    // RECUPERO RECORD, MONETE
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
     }
@@ -206,7 +262,6 @@
     function resetGame() {
       gameOver = false;
       score = 0;
-      // coins non viene azzerato, così rimane tra le partite
       gameSpeed = 3;
       obstacles = [];
       quagsireX = 50;
@@ -266,11 +321,11 @@
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
-      // Disegno personaggio scelto
+      // Disegno personaggio selezionato
       const currentImg = getCurrentCharacterImg();
       ctx.drawImage(currentImg, quagsireX, quagsireY, 50, 50);
 
-      // Spawn ostacoli (max 2 di fila, poi skip)
+      // Spawn ostacoli
       if (skipSpawn === 0) {
         if (Math.random() < 0.002) {
           const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
@@ -283,7 +338,6 @@
             passed: false
           });
           consecutiveSpawns++;
-
           if (consecutiveSpawns >= 2) {
             skipSpawn = 200;
             consecutiveSpawns = 0;
@@ -324,7 +378,6 @@
           score++;
           obstacles[i].passed = true;
 
-          // Ogni 10 punti -> moneta
           if (score % 10 === 0) {
             coins++;
             localStorage.setItem("quagsireCoins", coins);
@@ -382,28 +435,67 @@
     const btnCloseShop = document.getElementById("btnCloseShop");
 
     shopBtn.addEventListener("click", () => {
-      // Mostra overlay e negozio
       overlay.style.display = "block";
       shopDiv.style.display = "block";
     });
 
     btnCloseShop.addEventListener("click", () => {
-      // Nascondi overlay e negozio
       overlay.style.display = "none";
       shopDiv.style.display = "none";
     });
 
     btnBuyAbsol.addEventListener("click", () => {
-      // Prezzo 10 monete
-      if (coins >= 2) {
-        coins -= 2;
-        currentCharacter = "absol";
+      if (coins >= 10) {
+        coins -= 10;
         localStorage.setItem("absolPurchased", "true");
         localStorage.setItem("quagsireCoins", coins);
         updateUI();
         alert("Complimenti! Hai acquistato Absol!");
       } else {
         alert("Non hai abbastanza monete!");
+      }
+    });
+
+    // SELETTORE PERSONAGGIO
+    const charSelectBtn = document.getElementById("btnCharSelect");
+    const charSelectDiv = document.getElementById("characterSelect");
+    const btnCloseCharSelect = document.getElementById("btnCloseCharSelect");
+    const selectQuagsireImg = document.getElementById("selectQuagsire");
+    const selectAbsolImg = document.getElementById("selectAbsol");
+
+    charSelectBtn.addEventListener("click", () => {
+      overlay.style.display = "block";
+      charSelectDiv.style.display = "block";
+
+      // Se non abbiamo comprato absol, rendiamo l'immagine semitrasparente
+      if (!absolPurchased) {
+        selectAbsolImg.style.opacity = "0.4";
+        selectAbsolImg.style.pointerEvents = "none";
+      } else {
+        selectAbsolImg.style.opacity = "1";
+        selectAbsolImg.style.pointerEvents = "auto";
+      }
+    });
+
+    btnCloseCharSelect.addEventListener("click", () => {
+      overlay.style.display = "none";
+      charSelectDiv.style.display = "none";
+    });
+
+    // Click su Quagsire
+    selectQuagsireImg.addEventListener("click", () => {
+      currentCharacter = "quagsire";
+      localStorage.setItem("currentCharacter", currentCharacter);
+      alert("Hai selezionato Quagsire!");
+    });
+
+    // Click su Absol
+    selectAbsolImg.addEventListener("click", () => {
+      // solo se l'abbiamo comprato
+      if (absolPurchased) {
+        currentCharacter = "absol";
+        localStorage.setItem("currentCharacter", currentCharacter);
+        alert("Hai selezionato Absol!");
       }
     });
 
