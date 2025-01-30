@@ -89,9 +89,16 @@
     const quagsireImg = new Image();
     quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // UNICO OSTACOLO
-    const obstacleImg = new Image();
-    obstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
+    // PRIMO OSTACOLO
+    const obstacleImg1 = new Image();
+    obstacleImg1.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
+
+    // SECONDO OSTACOLO (CAFFE)
+    const obstacleImg2 = new Image();
+    obstacleImg2.src = "https://sim001-01.github.io/quagsire-run/caffeimg.png";
+
+    // ARRAY OSTACOLI
+    const obstacleImages = [obstacleImg1, obstacleImg2];
 
     // POSIZIONE E FISICA DI QUAGSIRE
     let quagsireX = 50;
@@ -108,15 +115,18 @@
     let gameSpeed = 3;
     let score = 0;
     let bestScore = 0;
-    let coins = 0; // nuova variabile per le monete
+    let coins = 0; // monete
 
     // Variabili di controllo per gli ostacoli
     let consecutiveSpawns = 0;
     let skipSpawn = 0;
 
-    // CARICHIAMO IL RECORD SALVATO (SE ESISTE)
+    // RECUPERO RECORD E MONETE SALVATE
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
+    }
+    if (localStorage.getItem("quagsireCoins")) {
+      coins = parseInt(localStorage.getItem("quagsireCoins"));
     }
 
     // ------------ FUNZIONI DI GIOCO ------------
@@ -139,7 +149,7 @@
     function resetGame() {
       gameOver = false;
       score = 0;
-      coins = 0;
+      // coins non viene azzerato, così rimane salvato tra una partita e l'altra
       gameSpeed = 3;
       obstacles = [];
       quagsireX = 50;
@@ -161,7 +171,7 @@
       document.getElementById("coins").innerText = "Monete: " + coins;
     }
 
-    // Richiamata quando premiamo Space o tocchiamo lo schermo
+    // Inizio salto
     function startJump() {
       if (!isJumping) {
         // Inizio di un nuovo salto
@@ -171,7 +181,7 @@
       jumpHeld = true;
     }
 
-    // Richiamata quando rilasciamo Space o togliamo il dito dallo schermo
+    // Fine salto
     function endJump() {
       jumpHeld = false;
     }
@@ -188,35 +198,35 @@
         }
       }
 
-      // Gestione salto e gravità
+      // Gravità e posizione
       velocityY += gravity;
       quagsireY += velocityY;
 
-      // Quagsire atterra
       if (quagsireY > 200) {
         quagsireY = 200;
         isJumping = false;
       }
 
-      // Pulisce
+      // Pulizia
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Disegno terreno
+      // Terreno
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
       // Disegno Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Logica spawn ostacoli (max 2 di fila, poi salta 60 frame)
+      // Spawn ostacoli (max 2 di fila, poi salta 60 frame)
       if (skipSpawn === 0) {
         if (Math.random() < 0.005) {
+          const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
           obstacles.push({
             x: canvas.width,
             y: 225,
-            w: 25, // ostacolo ridotto a 25
+            w: 25,
             h: 25,
-            img: obstacleImg,
+            img: randomImg,
             passed: false
           });
           consecutiveSpawns++;
@@ -232,7 +242,7 @@
         skipSpawn--;
       }
 
-      // Muove e disegna ostacoli
+      // Muove/disegna ostacoli
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
         ctx.drawImage(obstacles[i].img, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
@@ -246,10 +256,12 @@
           gameOver = true;
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
+          // Audio game over
           gameOverSound.play().catch((err) => {
             console.warn("Audio non riproducibile:", err);
           });
 
+          // Salvataggio record
           if (score > bestScore) {
             bestScore = score;
             localStorage.setItem("bestQuagsireScore", bestScore);
@@ -257,7 +269,7 @@
           return;
         }
 
-        // Superato l'ostacolo -> +1 punto
+        // Punteggio
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
@@ -265,28 +277,27 @@
           // OGNI 10 PUNTI -> +1 MONETA
           if (score % 10 === 0) {
             coins++;
+            localStorage.setItem("quagsireCoins", coins);
           }
         }
       }
 
-      // Rimuove ostacoli usciti dallo schermo
+      // Rimuove ostacoli fuori schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Velocità cresce a step di 1 ogni 10 punti
+      // Velocità cresce step di 1 ogni 10 punti
       gameSpeed = 3 + Math.floor(score / 10);
 
-      // Aggiorniamo UI
+      // Aggiorna UI
       updateUI();
 
       requestAnimationFrame(update);
     }
 
     // ------------ EVENTI ------------
-    // Tasti
     document.getElementById("btnPlay").addEventListener("click", startGame);
     document.getElementById("btnStop").addEventListener("click", stopGame);
 
-    // Se premi Space -> startJump
     window.addEventListener("keydown", function (e) {
       if (e.code === "Space") {
         if (gameOver) {
@@ -297,7 +308,6 @@
       }
     });
 
-    // Se rilasci Space -> endJump
     window.addEventListener("keyup", function (e) {
       if (e.code === "Space") {
         endJump();
@@ -313,12 +323,11 @@
       }
     });
 
-    // Fine touch
     window.addEventListener("touchend", function () {
       endJump();
     });
 
-    // Mostra punteggio iniziale
+    // Mostriamo i valori iniziali
     updateUI();
   </script>
 </body>
