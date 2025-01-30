@@ -52,6 +52,39 @@
       color: red;
       margin: 1rem 0;
     }
+
+    /* Stili per il negozio (popup) */
+    #shop {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 3px solid #333;
+      border-radius: 8px;
+      padding: 1rem;
+      width: 300px;
+      text-align: center;
+      z-index: 999;
+    }
+    #shop h2 {
+      margin-bottom: 1rem;
+    }
+    #shop button {
+      margin-top: 1rem;
+    }
+    /* Overlay dietro il negozio */
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+    }
   </style>
 </head>
 <body>
@@ -64,9 +97,23 @@
   <div id="buttons">
     <button id="btnPlay">Play</button>
     <button id="btnStop">Stop</button>
+    <button id="btnShop">Negozio</button>
   </div>
+
   <canvas id="gameCanvas" width="800" height="300"></canvas>
   <p id="gameOver">Game Over! Tocca o premi SPAZIO per riprovare.</p>
+
+  <!-- Overlay e finestra Negozio -->
+  <div id="overlay"></div>
+  <div id="shop">
+    <h2>Negozio</h2>
+    <p>Acquista Absol per 10 monete e sostituisci Quagsire!</p>
+    <img src="https://sim001-01.github.io/quagsire-run/stat-absol.png" alt="Absol" style="width:80px; height:80px;" />
+    <br />
+    <button id="btnBuyAbsol">Compra Absol (10 monete)</button>
+    <br />
+    <button id="btnCloseShop">Chiudi</button>
+  </div>
 
   <!-- Audio di Game Over -->
   <audio id="gameOverSound" src="https://sim001-01.github.io/quagsire-run/Pokemon%20Cries%20-%20%23195%20Quagsire.mp3"></audio>
@@ -85,43 +132,53 @@
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
 
-    // IMMAGINE DI QUAGSIRE
+    // IMMAGINI PERSONAGGI
     const quagsireImg = new Image();
     quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // PRIMO OSTACOLO
+    const absolImg = new Image();
+    absolImg.src = "https://sim001-01.github.io/quagsire-run/stat-absol.png";
+
+    // Determina quale personaggio usare (di default Quagsire)
+    let currentCharacter = "quagsire";
+    // Se in localStorage c'è un acquisto, allora sostituisci
+    if (localStorage.getItem("absolPurchased") === "true") {
+      currentCharacter = "absol";
+    }
+
+    // Funzione per ottenere l'immagine corrente
+    function getCurrentCharacterImg() {
+      return currentCharacter === "absol" ? absolImg : quagsireImg;
+    }
+
+    // OSTACOLI
     const obstacleImg1 = new Image();
     obstacleImg1.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
 
-    // SECONDO OSTACOLO (CAFFE)
     const obstacleImg2 = new Image();
     obstacleImg2.src = "https://sim001-01.github.io/quagsire-run/caffeimg.png";
 
-    // ARRAY OSTACOLI
     const obstacleImages = [obstacleImg1, obstacleImg2];
 
-    // POSIZIONE E FISICA DI QUAGSIRE
+    // POSIZIONE E FISICA
     let quagsireX = 50;
     let quagsireY = 200;
     let velocityY = 0;
     const gravity = 0.5;
     let isJumping = false;
-    let jumpHeld = false; // salto prolungato
+    let jumpHeld = false;
 
-    // OSTACOLI
     let obstacles = [];
 
-    // PARAMETRI DI GIOCO
     let gameSpeed = 3;
     let score = 0;
     let bestScore = 0;
-    let coins = 0; // monete
+    let coins = 0;
 
-    // Variabili di controllo per gli ostacoli
     let consecutiveSpawns = 0;
     let skipSpawn = 0;
 
-    // RECUPERO RECORD E MONETE SALVATE
+    // RECUPERO RECORD, MONETE, E ACQUISTO ABSOL
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
     }
@@ -149,7 +206,7 @@
     function resetGame() {
       gameOver = false;
       score = 0;
-      // coins non viene azzerato, così rimane salvato tra una partita e l'altra
+      // coins non viene azzerato, così rimane tra le partite
       gameSpeed = 3;
       obstacles = [];
       quagsireX = 50;
@@ -171,17 +228,14 @@
       document.getElementById("coins").innerText = "Monete: " + coins;
     }
 
-    // Inizio salto
     function startJump() {
       if (!isJumping) {
-        // Inizio di un nuovo salto
         velocityY = -12;
         isJumping = true;
       }
       jumpHeld = true;
     }
 
-    // Fine salto
     function endJump() {
       jumpHeld = false;
     }
@@ -198,7 +252,6 @@
         }
       }
 
-      // Gravità e posizione
       velocityY += gravity;
       quagsireY += velocityY;
 
@@ -207,19 +260,19 @@
         isJumping = false;
       }
 
-      // Pulizia
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Terreno
       ctx.fillStyle = "#4CAF50";
       ctx.fillRect(0, 250, canvas.width, 50);
 
-      // Disegno Quagsire
-      ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
+      // Disegno personaggio scelto
+      const currentImg = getCurrentCharacterImg();
+      ctx.drawImage(currentImg, quagsireX, quagsireY, 50, 50);
 
-      // Spawn ostacoli (max 2 di fila, poi salta 60 frame)
+      // Spawn ostacoli (max 2 di fila, poi skip)
       if (skipSpawn === 0) {
-        if (Math.random() < 0.005) {
+        if (Math.random() < 0.002) {
           const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
           obstacles.push({
             x: canvas.width,
@@ -232,7 +285,7 @@
           consecutiveSpawns++;
 
           if (consecutiveSpawns >= 2) {
-            skipSpawn = 60;
+            skipSpawn = 200;
             consecutiveSpawns = 0;
           }
         } else {
@@ -242,7 +295,6 @@
         skipSpawn--;
       }
 
-      // Muove/disegna ostacoli
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
         ctx.drawImage(obstacles[i].img, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
@@ -256,7 +308,6 @@
           gameOver = true;
           gameRunning = false;
           document.getElementById("gameOver").style.display = "block";
-          // Audio game over
           gameOverSound.play().catch((err) => {
             console.warn("Audio non riproducibile:", err);
           });
@@ -269,12 +320,11 @@
           return;
         }
 
-        // Punteggio
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
 
-          // OGNI 10 PUNTI -> +1 MONETA
+          // Ogni 10 punti -> moneta
           if (score % 10 === 0) {
             coins++;
             localStorage.setItem("quagsireCoins", coins);
@@ -282,13 +332,11 @@
         }
       }
 
-      // Rimuove ostacoli fuori schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Velocità cresce step di 1 ogni 10 punti
+      // Velocità
       gameSpeed = 3 + Math.floor(score / 10);
 
-      // Aggiorna UI
       updateUI();
 
       requestAnimationFrame(update);
@@ -314,7 +362,6 @@
       }
     });
 
-    // Touch
     window.addEventListener("touchstart", function () {
       if (gameOver) {
         resetGame();
@@ -327,7 +374,40 @@
       endJump();
     });
 
-    // Mostriamo i valori iniziali
+    // SHOP
+    const shopBtn = document.getElementById("btnShop");
+    const shopDiv = document.getElementById("shop");
+    const overlay = document.getElementById("overlay");
+    const btnBuyAbsol = document.getElementById("btnBuyAbsol");
+    const btnCloseShop = document.getElementById("btnCloseShop");
+
+    shopBtn.addEventListener("click", () => {
+      // Mostra overlay e negozio
+      overlay.style.display = "block";
+      shopDiv.style.display = "block";
+    });
+
+    btnCloseShop.addEventListener("click", () => {
+      // Nascondi overlay e negozio
+      overlay.style.display = "none";
+      shopDiv.style.display = "none";
+    });
+
+    btnBuyAbsol.addEventListener("click", () => {
+      // Prezzo 10 monete
+      if (coins >= 10) {
+        coins -= 10;
+        currentCharacter = "absol";
+        localStorage.setItem("absolPurchased", "true");
+        localStorage.setItem("quagsireCoins", coins);
+        updateUI();
+        alert("Complimenti! Hai acquistato Absol!");
+      } else {
+        alert("Non hai abbastanza monete!");
+      }
+    });
+
+    // Inizializza UI
     updateUI();
   </script>
 </body>
