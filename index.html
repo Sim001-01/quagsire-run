@@ -77,48 +77,53 @@
     let gameRunning = false;
     let gameOver = false;
 
-    // Audio Game Over
     const gameOverSound = document.getElementById("gameOverSound");
 
-    // Adattamento per mobile
+    // Adattamento mobile
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
 
-    // IMMAGINE DI QUAGSIRE
+    // Immagine di Quagsire
     const quagsireImg = new Image();
     quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // UNICO OSTACOLO
+    // Unico ostacolo
     const obstacleImg = new Image();
     obstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
 
-    // POSIZIONE E FISICA DI QUAGSIRE
+    // Nuvola per abbellire
+    const cloudImg = new Image();
+    cloudImg.src = "https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/cloud.png";
+
+    // Quagsire physics
     let quagsireX = 50;
     let quagsireY = 200;
     let velocityY = 0;
     const gravity = 0.5;
     let isJumping = false;
-    let jumpHeld = false; // Per gestire il salto prolungato
+    let jumpHeld = false;
 
-    // OSTACOLI
+    // Ostacoli
     let obstacles = [];
 
-    // PARAMETRI DI GIOCO
+    // Nuvole decorative
+    let clouds = [];
+
+    // Parametri di gioco
     let gameSpeed = 3;
     let score = 0;
     let bestScore = 0;
 
-    // Variabili di controllo per gli ostacoli
+    // Controllo spawn ostacoli
     let consecutiveSpawns = 0;
     let skipSpawn = 0;
 
-    // CARICHIAMO IL RECORD SALVATO (SE ESISTE)
+    // Carichiamo record salvato
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
     }
 
     // ------------ FUNZIONI DI GIOCO ------------
-
     function startGame() {
       if (!gameRunning) {
         if (gameOver) {
@@ -139,6 +144,7 @@
       score = 0;
       gameSpeed = 3;
       obstacles = [];
+      clouds = [];
       quagsireX = 50;
       quagsireY = 200;
       velocityY = 0;
@@ -151,46 +157,73 @@
       requestAnimationFrame(update);
     }
 
-    // Richiamata quando premiamo Space o tocchiamo lo schermo
     function startJump() {
       if (!isJumping) {
-        // Inizio di un nuovo salto
         velocityY = -12;
         isJumping = true;
       }
       jumpHeld = true;
     }
 
-    // Richiamata quando rilasciamo Space o togliamo il dito dallo schermo
     function endJump() {
       jumpHeld = false;
+    }
+
+    // Funzione per spawnare una nuvola casuale
+    function spawnCloud() {
+      // Larghezza / altezza nuvola
+      const cloudW = 60;
+      const cloudH = 30;
+      // Posizione random: Y tra 0 e 80
+      const cloudY = Math.random() * 80;
+      // Velocità cloud più lenta per dare l'idea di profondità
+      const cloudSpeed = 1 + Math.random(); // da 1 a 2
+
+      clouds.push({
+        x: canvas.width,
+        y: cloudY,
+        w: cloudW,
+        h: cloudH,
+        speed: cloudSpeed
+      });
     }
 
     // ------------ LOOP PRINCIPALE ------------
     function update() {
       if (!gameRunning || gameOver) return;
 
-      // Se stiamo ancora tenendo premuto, continuiamo ad alzare un po' Quagsire (fino a un limite)
+      // Salto prolungato
       if (jumpHeld && isJumping && velocityY < -2) {
         velocityY -= 0.2;
-        // Limite massimo di "spinta" verso l'alto
         if (velocityY < -15) {
           velocityY = -15;
         }
       }
 
-      // Gestione salto e gravità
+      // Fisica Quagsire
       velocityY += gravity;
       quagsireY += velocityY;
 
-      // Quagsire atterra
       if (quagsireY > 200) {
         quagsireY = 200;
         isJumping = false;
       }
 
-      // Pulisce
+      // Pulizia
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Spawna nuvole (probabilità 1% per frame)
+      if (Math.random() < 0.01) {
+        spawnCloud();
+      }
+
+      // Disegno nuvole (in background, senza collisione)
+      for (let i = 0; i < clouds.length; i++) {
+        clouds[i].x -= clouds[i].speed;
+        ctx.drawImage(cloudImg, clouds[i].x, clouds[i].y, clouds[i].w, clouds[i].h);
+      }
+      // Rimuove nuvole uscite dallo schermo
+      clouds = clouds.filter((cl) => cl.x > -cl.w);
 
       // Disegno terreno
       ctx.fillStyle = "#4CAF50";
@@ -199,19 +232,18 @@
       // Disegno Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Logica spawn ostacoli (max 2 di fila, poi salta 60 frame)
+      // Spawn ostacoli
       if (skipSpawn === 0) {
         if (Math.random() < 0.005) {
           obstacles.push({
-            x: canvas.width,
-            y: 225,
-            w: 30,
-            h: 30,
+          x: canvas.width,
+          y: 225,
+          w: 23,
+          h: 23,
             img: obstacleImg,
             passed: false
           });
           consecutiveSpawns++;
-
           if (consecutiveSpawns >= 2) {
             skipSpawn = 60;
             consecutiveSpawns = 0;
@@ -226,9 +258,15 @@
       // Muove e disegna ostacoli
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
-        ctx.drawImage(obstacles[i].img, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
+        ctx.drawImage(
+          obstacles[i].img,
+          obstacles[i].x,
+          obstacles[i].y,
+          obstacles[i].w,
+          obstacles[i].h
+        );
 
-        // Collisione
+        // Collision
         if (
           quagsireX < obstacles[i].x + obstacles[i].w &&
           quagsireX + 50 > obstacles[i].x &&
@@ -248,17 +286,17 @@
           return;
         }
 
-        // Superato l'ostacolo -> +1 punto
+        // Aumento punteggio se l'ostacolo è passato
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
         }
       }
 
-      // Rimuove ostacoli usciti dallo schermo
+      // Rimuove ostacoli usciti
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Velocità cresce a step di 1 ogni 10 punti
+      // Aumenta velocità ogni 10 punti
       gameSpeed = 3 + Math.floor(score / 10);
 
       // Aggiorna punteggio
@@ -269,11 +307,9 @@
     }
 
     // ------------ EVENTI ------------
-    // Tasti
     document.getElementById("btnPlay").addEventListener("click", startGame);
     document.getElementById("btnStop").addEventListener("click", stopGame);
 
-    // Se premi Space -> startJump
     window.addEventListener("keydown", function (e) {
       if (e.code === "Space") {
         if (gameOver) {
@@ -283,15 +319,12 @@
         }
       }
     });
-
-    // Se rilasci Space -> endJump
     window.addEventListener("keyup", function (e) {
       if (e.code === "Space") {
         endJump();
       }
     });
 
-    // Touch
     window.addEventListener("touchstart", function () {
       if (gameOver) {
         resetGame();
@@ -299,13 +332,10 @@
         startJump();
       }
     });
-
-    // Fine touch
     window.addEventListener("touchend", function () {
       endJump();
     });
 
-    // Mostra punteggio iniziale
     document.getElementById("score").innerText = "Punteggio: " + score;
     document.getElementById("bestScore").innerText = "Record: " + bestScore;
   </script>
