@@ -58,7 +58,8 @@
   <h1>Quagsire Run</h1>
   <div id="info">
     <span id="score">Punteggio: 0</span> |
-    <span id="bestScore">Record: 0</span>
+    <span id="bestScore">Record: 0</span> |
+    <span id="coins">Monete: 0</span>
   </div>
   <div id="buttons">
     <button id="btnPlay">Play</button>
@@ -77,53 +78,49 @@
     let gameRunning = false;
     let gameOver = false;
 
+    // Audio Game Over
     const gameOverSound = document.getElementById("gameOverSound");
 
-    // Adattamento mobile
+    // Adattamento per mobile
     canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
     canvas.height = 300;
 
-    // Immagine di Quagsire
+    // IMMAGINE DI QUAGSIRE
     const quagsireImg = new Image();
     quagsireImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/195.png";
 
-    // Unico ostacolo
+    // UNICO OSTACOLO
     const obstacleImg = new Image();
     obstacleImg.src = "https://sim001-01.github.io/quagsire-run/Progetto%20senza%20titolo.png";
 
-    // Nuvola per abbellire
-    const cloudImg = new Image();
-    cloudImg.src = "https://raw.githubusercontent.com/williamli-ml-lab/cdnimage/main/cloud.png";
-
-    // Quagsire physics
+    // POSIZIONE E FISICA DI QUAGSIRE
     let quagsireX = 50;
     let quagsireY = 200;
     let velocityY = 0;
     const gravity = 0.5;
     let isJumping = false;
-    let jumpHeld = false;
+    let jumpHeld = false; // salto prolungato
 
-    // Ostacoli
+    // OSTACOLI
     let obstacles = [];
 
-    // Nuvole decorative
-    let clouds = [];
-
-    // Parametri di gioco
+    // PARAMETRI DI GIOCO
     let gameSpeed = 3;
     let score = 0;
     let bestScore = 0;
+    let coins = 0; // nuova variabile per le monete
 
-    // Controllo spawn ostacoli
+    // Variabili di controllo per gli ostacoli
     let consecutiveSpawns = 0;
     let skipSpawn = 0;
 
-    // Carichiamo record salvato
+    // CARICHIAMO IL RECORD SALVATO (SE ESISTE)
     if (localStorage.getItem("bestQuagsireScore")) {
       bestScore = parseInt(localStorage.getItem("bestQuagsireScore"));
     }
 
     // ------------ FUNZIONI DI GIOCO ------------
+
     function startGame() {
       if (!gameRunning) {
         if (gameOver) {
@@ -142,9 +139,9 @@
     function resetGame() {
       gameOver = false;
       score = 0;
+      coins = 0;
       gameSpeed = 3;
       obstacles = [];
-      clouds = [];
       quagsireX = 50;
       quagsireY = 200;
       velocityY = 0;
@@ -154,38 +151,29 @@
       skipSpawn = 0;
       document.getElementById("gameOver").style.display = "none";
       gameRunning = true;
+      updateUI();
       requestAnimationFrame(update);
     }
 
+    function updateUI() {
+      document.getElementById("score").innerText = "Punteggio: " + score;
+      document.getElementById("bestScore").innerText = "Record: " + bestScore;
+      document.getElementById("coins").innerText = "Monete: " + coins;
+    }
+
+    // Richiamata quando premiamo Space o tocchiamo lo schermo
     function startJump() {
       if (!isJumping) {
+        // Inizio di un nuovo salto
         velocityY = -12;
         isJumping = true;
       }
       jumpHeld = true;
     }
 
+    // Richiamata quando rilasciamo Space o togliamo il dito dallo schermo
     function endJump() {
       jumpHeld = false;
-    }
-
-    // Funzione per spawnare una nuvola casuale
-    function spawnCloud() {
-      // Larghezza / altezza nuvola
-      const cloudW = 60;
-      const cloudH = 30;
-      // Posizione random: Y tra 0 e 80
-      const cloudY = Math.random() * 80;
-      // Velocità cloud più lenta per dare l'idea di profondità
-      const cloudSpeed = 1 + Math.random(); // da 1 a 2
-
-      clouds.push({
-        x: canvas.width,
-        y: cloudY,
-        w: cloudW,
-        h: cloudH,
-        speed: cloudSpeed
-      });
     }
 
     // ------------ LOOP PRINCIPALE ------------
@@ -200,30 +188,18 @@
         }
       }
 
-      // Fisica Quagsire
+      // Gestione salto e gravità
       velocityY += gravity;
       quagsireY += velocityY;
 
+      // Quagsire atterra
       if (quagsireY > 200) {
         quagsireY = 200;
         isJumping = false;
       }
 
-      // Pulizia
+      // Pulisce
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Spawna nuvole (probabilità 1% per frame)
-      if (Math.random() < 0.01) {
-        spawnCloud();
-      }
-
-      // Disegno nuvole (in background, senza collisione)
-      for (let i = 0; i < clouds.length; i++) {
-        clouds[i].x -= clouds[i].speed;
-        ctx.drawImage(cloudImg, clouds[i].x, clouds[i].y, clouds[i].w, clouds[i].h);
-      }
-      // Rimuove nuvole uscite dallo schermo
-      clouds = clouds.filter((cl) => cl.x > -cl.w);
 
       // Disegno terreno
       ctx.fillStyle = "#4CAF50";
@@ -232,18 +208,19 @@
       // Disegno Quagsire
       ctx.drawImage(quagsireImg, quagsireX, quagsireY, 50, 50);
 
-      // Spawn ostacoli
+      // Logica spawn ostacoli (max 2 di fila, poi salta 60 frame)
       if (skipSpawn === 0) {
         if (Math.random() < 0.005) {
           obstacles.push({
-          x: canvas.width,
-          y: 225,
-          w: 23,
-          h: 23,
+            x: canvas.width,
+            y: 225,
+            w: 25, // ostacolo ridotto a 25
+            h: 25,
             img: obstacleImg,
             passed: false
           });
           consecutiveSpawns++;
+
           if (consecutiveSpawns >= 2) {
             skipSpawn = 60;
             consecutiveSpawns = 0;
@@ -258,15 +235,9 @@
       // Muove e disegna ostacoli
       for (let i = 0; i < obstacles.length; i++) {
         obstacles[i].x -= gameSpeed;
-        ctx.drawImage(
-          obstacles[i].img,
-          obstacles[i].x,
-          obstacles[i].y,
-          obstacles[i].w,
-          obstacles[i].h
-        );
+        ctx.drawImage(obstacles[i].img, obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
 
-        // Collision
+        // Collisione
         if (
           quagsireX < obstacles[i].x + obstacles[i].w &&
           quagsireX + 50 > obstacles[i].x &&
@@ -286,30 +257,36 @@
           return;
         }
 
-        // Aumento punteggio se l'ostacolo è passato
+        // Superato l'ostacolo -> +1 punto
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].w < quagsireX) {
           score++;
           obstacles[i].passed = true;
+
+          // OGNI 10 PUNTI -> +1 MONETA
+          if (score % 10 === 0) {
+            coins++;
+          }
         }
       }
 
-      // Rimuove ostacoli usciti
+      // Rimuove ostacoli usciti dallo schermo
       obstacles = obstacles.filter((obs) => obs.x > -obs.w);
 
-      // Aumenta velocità ogni 10 punti
+      // Velocità cresce a step di 1 ogni 10 punti
       gameSpeed = 3 + Math.floor(score / 10);
 
-      // Aggiorna punteggio
-      document.getElementById("score").innerText = "Punteggio: " + score;
-      document.getElementById("bestScore").innerText = "Record: " + bestScore;
+      // Aggiorniamo UI
+      updateUI();
 
       requestAnimationFrame(update);
     }
 
     // ------------ EVENTI ------------
+    // Tasti
     document.getElementById("btnPlay").addEventListener("click", startGame);
     document.getElementById("btnStop").addEventListener("click", stopGame);
 
+    // Se premi Space -> startJump
     window.addEventListener("keydown", function (e) {
       if (e.code === "Space") {
         if (gameOver) {
@@ -319,12 +296,15 @@
         }
       }
     });
+
+    // Se rilasci Space -> endJump
     window.addEventListener("keyup", function (e) {
       if (e.code === "Space") {
         endJump();
       }
     });
 
+    // Touch
     window.addEventListener("touchstart", function () {
       if (gameOver) {
         resetGame();
@@ -332,12 +312,14 @@
         startJump();
       }
     });
+
+    // Fine touch
     window.addEventListener("touchend", function () {
       endJump();
     });
 
-    document.getElementById("score").innerText = "Punteggio: " + score;
-    document.getElementById("bestScore").innerText = "Record: " + bestScore;
+    // Mostra punteggio iniziale
+    updateUI();
   </script>
 </body>
 </html>
